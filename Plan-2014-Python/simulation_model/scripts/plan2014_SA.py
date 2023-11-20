@@ -19,7 +19,7 @@ from SALib.plotting.morris import (
 )
 import matplotlib.pyplot as plt
 
-def my_PLAN2014_fun(c11,c12): # add more params to change 
+def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to change 
     args = sys.argv
     # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
     args = ["", "historic", "historic", "full", "sq", "1", "0"] 
@@ -282,9 +282,13 @@ def my_PLAN2014_fun(c11,c12): # add more params to change
                                 c1 = c12 #220
     
                             # rule curve release
+                            # define vars in RC
+                            a_nts_max = a_nts_max1 #8552
+                        
+                            
                             flow = (
                                 preproj
-                                + ((lfSupply - 7011) / (8552 - 7011)) ** 0.9 * c1
+                                + ((lfSupply - 7011) / (a_nts_max - 7011)) ** 0.9 * c1
                             )
     
                             # set rc flow regime
@@ -297,12 +301,15 @@ def my_PLAN2014_fun(c11,c12): # add more params to change
                         if lfSupply < 7011:
     
                             # set c2 coefficient
-                            c2 = 60
+                            c2 = c21 #60
     
                             # rule curve release
+                            # define vars in RC
+                            a_nts_min = a_nts_min1 #5717
+                            
                             flow = (
                                 preproj
-                                - ((7011 - lfSupply) / (7011 - 5717)) ** 1.0 * c2
+                                - ((7011 - lfSupply) / (7011 - a_nts_min)) ** 1.0 * c2
                             )
     
                             # set rc flow regime
@@ -937,25 +944,28 @@ def my_PLAN2014_fun(c11,c12): # add more params to change
     
             # save output
             max_LO_level = np.max(data["ontLevel"])
-            return max_LO_level
+            return max_LO_level # might want to change this?? 
         
 # wrap the Plan 2014 simulation model 
 def wrapped_my_PLAN2014_fun(X, func=my_PLAN2014_fun):
     """g(X) = Y, where X := [a b x] and g(X) := f(X)"""
     # We transpose to obtain each column (the model factors) as separate variables
-    c11, c12 = X.T
+    c11, c12, c21, a_nts_max1, a_nts_min1 = X.T
 
     # Then call the original model
-    return func(c11, c12)
+    return func(c11, c12, c21, a_nts_max1, a_nts_min1)
 
 # define the problem 
 problem = {
-    'names': ['c11', 'c12'],
+    'names': ['c11', 'c12', 'c21', 'a_nts_max1', 'a_nts_min1'],
     'bounds': [
-        [250, 270], # change these to be physically meaningful 
-        [210, 230] # change 
+        [250, 270], # change these to be physically meaningful! 
+        [210, 230], # change
+        [50, 70],
+        [8500, 8600], # change
+        [5700, 5800] # change 
     ],
-    'num_vars': 2
+    'num_vars': 5
 }
 
 #X = saltelli.sample(problem, 2)
@@ -981,9 +991,19 @@ Si = morris.analyze(
 )
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
+fig1 = plt.figure()
 horizontal_bar_plot(ax1, Si, {}, sortby="mu_star", unit=r"10 cms")
 covariance_plot(ax2, Si, {}, unit=r"10 cms")
 
 fig2 = plt.figure()
 sample_histograms(fig2, X, problem, {"color": "y"})
+plt.show()
+
+plt.scatter(x = [0.018000000000000682, 0.00600000000000307, 0.0,
+                   0.017999999999996418, 0.0], y = Si["sigma"], 
+            s = 10, color = "black") # annotate this graph to show where each of
+# the params are located, and then interpret for noninfluential params and params w/ interactions 
+
+plt.xlabel("Mean of Elementary Effects (µ*)")
+plt.ylabel("Standard deviation of Elementary Effects (σ)")
 plt.show()

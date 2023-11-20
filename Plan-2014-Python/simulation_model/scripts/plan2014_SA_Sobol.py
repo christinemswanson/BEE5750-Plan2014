@@ -298,7 +298,7 @@ def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changin
                         if lfSupply < 7011:
     
                             # set c2 coefficient
-                            c2 = c21 #60
+                            c2 = 60
     
                             # rule curve release
                             flow = (
