@@ -1,6 +1,7 @@
 # Christine Swanson 
 # 20 Nov 2023
 # BEE-5750 Final Project
+# Method of Morris 
  
 # import libraries
 import os
@@ -19,7 +20,7 @@ from SALib.plotting.morris import (
 )
 import matplotlib.pyplot as plt
 
-def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to change 
+def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1, a_nts_avg1, p11, p21): # add more params to change 
     args = sys.argv
     # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
     args = ["", "historic", "historic", "full", "sq", "1", "0"] 
@@ -273,7 +274,8 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to cha
                         preproj = slope * (ontLevelStart - adj - 69.474) ** 1.5
     
                         # above average supplies
-                        if lfSupply >= 7011:
+                        a_nts_avg = a_nts_avg1 # define the average NTS
+                        if lfSupply >= a_nts_avg:
     
                             # set c1 coefficients based on how confident forecast is in wet
                             if lfInd == 1 and lfCon == 3:
@@ -284,11 +286,11 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to cha
                             # rule curve release
                             # define vars in RC
                             a_nts_max = a_nts_max1 #8552
-                        
+                            p1 = p11
                             
                             flow = (
                                 preproj
-                                + ((lfSupply - 7011) / (a_nts_max - 7011)) ** 0.9 * c1
+                                + ((lfSupply - a_nts_avg) / (a_nts_max - a_nts_avg)) ** p1 * c1
                             )
     
                             # set rc flow regime
@@ -298,10 +300,11 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to cha
                                 sy = "RC1"
     
                         # below average supplies
-                        if lfSupply < 7011:
+                        if lfSupply < a_nts_avg:
     
-                            # set c2 coefficient
+                            # set c2 and p2 coefficients 
                             c2 = c21 #60
+                            p2 = p21
     
                             # rule curve release
                             # define vars in RC
@@ -309,7 +312,7 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to cha
                             
                             flow = (
                                 preproj
-                                - ((7011 - lfSupply) / (7011 - a_nts_min)) ** 1.0 * c2
+                                - ((a_nts_avg - lfSupply) / (a_nts_avg - a_nts_min)) ** p2 * c2
                             )
     
                             # set rc flow regime
@@ -945,35 +948,41 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1): # add more params to cha
             # save output
             max_LO_level = np.max(data["ontLevel"])
             return max_LO_level # might want to change this?? 
+        # need to see what outputs are importqnt 
         
 # wrap the Plan 2014 simulation model 
 def wrapped_my_PLAN2014_fun(X, func=my_PLAN2014_fun):
     """g(X) = Y, where X := [a b x] and g(X) := f(X)"""
     # We transpose to obtain each column (the model factors) as separate variables
-    c11, c12, c21, a_nts_max1, a_nts_min1 = X.T
+    c11, c12, c21, a_nts_max1, a_nts_min1, a_nts_avg1, p11, p21 = X.T
 
     # Then call the original model
-    return func(c11, c12, c21, a_nts_max1, a_nts_min1)
+    return func(c11, c12, c21, a_nts_max1, a_nts_min1, a_nts_avg1, p11, p21)
 
 # define the problem 
 problem = {
-    'names': ['c11', 'c12', 'c21', 'a_nts_max1', 'a_nts_min1'],
+    'names': ['c11', 'c12', 'c21', 'a_nts_max1', 'a_nts_min1', 'a_nts_avg1', 'p11', 'p21'],
     'bounds': [
-        [250, 270], # change these to be physically meaningful! 
-        [210, 230], # change
-        [50, 70],
-        [8500, 8600], # change
-        [5700, 5800] # change 
+        [234, 286], # change these to be physically meaningful! Adjs should only be on order of hundereds
+        [198, 242], # change
+        [54, 66],
+        [7697, 9407], # change
+        [5145, 6288],
+        [6310, 7712],
+        [0.9, 0.901],
+        [1, 1.01]# change 
     ],
-    'num_vars': 5
+    'num_vars': 8
 }
 
 #X = saltelli.sample(problem, 2)
 X = sample(problem, N=5, num_levels=4, optimal_trajectories=None)
 
+
 Y = np.empty(X.shape[0])
 for i in range(X.shape[0]):
     Y[i] = wrapped_my_PLAN2014_fun(X[i, :])
+# 1 output per sample 
 
 # perform the method of morris approach 
 # Returns a dictionary with keys 'mu', 'mu_star', 'sigma', and 'mu_star_conf'
@@ -999,11 +1008,17 @@ fig2 = plt.figure()
 sample_histograms(fig2, X, problem, {"color": "y"})
 plt.show()
 
-plt.scatter(x = [0.018000000000000682, 0.00600000000000307, 0.0,
-                   0.017999999999996418, 0.0], y = Si["sigma"], 
+plt.scatter(x = [0.011999999999997613, 0.003000000000001535, 0.0,
+                   0.0029999999999972713, 0.0, 0.3270000000000053,
+                   0.008999999999996077, 0.005999999999994543], y = Si["sigma"], 
             s = 10, color = "black") # annotate this graph to show where each of
 # the params are located, and then interpret for noninfluential params and params w/ interactions 
 
 plt.xlabel("Mean of Elementary Effects (µ*)")
 plt.ylabel("Standard deviation of Elementary Effects (σ)")
 plt.show()
+
+# covar: 1:1 output is equally sensitive and interactive
+# higher sigma, higher interaction 
+
+# make heatmap of 2 params and color = water levels
