@@ -963,7 +963,7 @@ problem = {
 #X = sample(problem, N=5, num_levels=4, optimal_trajectories=None)
 
 # Generate samples
-param_values = saltelli.sample(problem, 100)
+param_values = saltelli.sample(problem, 100) # make this larger incrementally 
 
 # Run model (example)
 
@@ -978,6 +978,8 @@ print("First-order: ", Si['S1'])
 
 # Print the total-order sensitivity indices 
 print("Total-order: ", Si["ST"])
+
+# gicve me second order to compare to Morris
 
 #Y = np.empty(X.shape[0])
 #for i in range(X.shape[0]):
