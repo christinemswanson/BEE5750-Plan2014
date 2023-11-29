@@ -7,6 +7,7 @@
 import os
 import sys
 import numpy as np
+import numpy.ma as ma
 import pandas as pd
 from glob import glob
 from datetime import datetime
@@ -20,7 +21,7 @@ from SALib.plotting.morris import (
 )
 import matplotlib.pyplot as plt
 
-def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1, a_nts_avg1, p11, p21): # add more params to change 
+def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1, a_nts_avg1, p11, p21): 
     args = sys.argv
     # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
     args = ["", "historic", "historic", "full", "sq", "1", "0"] 
@@ -948,7 +949,7 @@ def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1, a_nts_avg1, p11, p21): # 
             # save output
             max_LO_level = np.max(data["ontLevel"])
             return max_LO_level # might want to change this?? 
-        # need to see what outputs are importqnt 
+        # need to see what outputs are important 
         
 # wrap the Plan 2014 simulation model 
 def wrapped_my_PLAN2014_fun(X, func=my_PLAN2014_fun):
@@ -962,15 +963,15 @@ def wrapped_my_PLAN2014_fun(X, func=my_PLAN2014_fun):
 # define the problem 
 problem = {
     'names': ['c11', 'c12', 'c21', 'a_nts_max1', 'a_nts_min1', 'a_nts_avg1', 'p11', 'p21'],
-    'bounds': [
-        [234, 286], # change these to be physically meaningful! Adjs should only be on order of hundereds
-        [198, 242], # change
+    'bounds': [ # assumption: bounds were changed by +/- 10% from their original values in Plan 2014 
+        [234, 286], # adjustments should only be on order of hundereds
+        [198, 242], 
         [54, 66],
-        [7697, 9407], # change
+        [7697, 9407], 
         [5145, 6288],
         [6310, 7712],
-        [0.9, 0.901],
-        [1, 1.01]# change 
+        [0.81, 0.99],
+        [0.9, 1.0] # not going above 1 (exceptionally high water levels)
     ],
     'num_vars': 8
 }
@@ -999,6 +1000,7 @@ Si = morris.analyze(
     num_resamples=100,
 )
 
+# plotting 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 fig1 = plt.figure()
 horizontal_bar_plot(ax1, Si, {}, sortby="mu_star", unit=r"10 cms")
@@ -1008,11 +1010,11 @@ fig2 = plt.figure()
 sample_histograms(fig2, X, problem, {"color": "y"})
 plt.show()
 
-plt.scatter(x = [0.011999999999997613, 0.003000000000001535, 0.0,
-                   0.0029999999999972713, 0.0, 0.3270000000000053,
-                   0.008999999999996077, 0.005999999999994543], y = Si["sigma"], 
+mu_star = ma.getdata(Si["mu_star"]) # extract mu star masked array
+plt.scatter(x = mu_star, y = Si["sigma"], 
             s = 10, color = "black") # annotate this graph to show where each of
 # the params are located, and then interpret for noninfluential params and params w/ interactions 
+# replace x with mu star
 
 plt.xlabel("Mean of Elementary Effects (µ*)")
 plt.ylabel("Standard deviation of Elementary Effects (σ)")
@@ -1021,4 +1023,12 @@ plt.show()
 # covar: 1:1 output is equally sensitive and interactive
 # higher sigma, higher interaction 
 
-# make heatmap of 2 params and color = water levels
+# make heatmap of 2 most influential params and color = water levels
+X_df = pd.DataFrame(X)
+top2_params_df = X_df.iloc[:,[3,5]] # just the NTS ang and min vars 
+Y_df = pd.DataFrame(Y)
+X_Y_df = top2_params_df.join(Y_df, how = "outer").rename(columns = {3: "NTS_max", 5: "NTS_avg", 0: "ontLevel"})
+
+#plt.imshow(X_df.iloc[:,4:6])
+
+X_Y_df.to_csv("X_Y_df.csv")
