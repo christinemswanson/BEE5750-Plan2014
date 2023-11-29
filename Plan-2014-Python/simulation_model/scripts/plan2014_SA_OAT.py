@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 args = sys.argv
 # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
@@ -275,7 +276,7 @@ for f in range(startf, len(filelist)):
                         # rule curve release
                         flow = (
                             preproj
-                            + ((lfSupply - 7011) / (8552 - 7011)) ** 0.9 * c1
+                            + ((lfSupply - 7011) / (9407 - 7011)) ** 0.9 * c1
                         )
 
                         # set rc flow regime
@@ -942,3 +943,106 @@ for f in range(startf, len(filelist)):
             sep="\t",
             index=False,
         )
+        
+# compute mean, median, and max water levels 
+
+# plan 2014 baseline: 
+    # mean water level: 74.82 m
+    # max water level: 75.89 m
+    # median water level: 74.82 m
+
+# adjust mean NTS to 6310 cms (lower bound) -> first important param according to Morris
+    # mean water level: 74.6 m
+    # max water level: 75.86 m
+    # median water level: 74.61 m
+
+# adjust mean NTS to 7712 cms (upper bound)
+    # mean water level: 74.96 m
+    # **max water level: 76.16 m
+    # median water level: 74.93 m
+
+# adjust max NTS to 7697 cms (lower bound) -> second important param according to Morris
+    # mean water level: 74.77 m
+    # *max water level: 75.87 m
+    # median water level: 74.75 m 
+
+# adjust max NTS to 9407 cms (upper bound) 
+    # mean water level: 74.86 m
+    # *max water level:  76.0 m
+    # median water level: 74.85 m
+    
+# make a bar chart comparing Plan 2014 baseline, mean NTS, and max NTS for their 
+# respective water levels 
+
+# UPPER BOUND:
+
+# set width of bar 
+barWidth = 0.25
+fig = plt.subplots(figsize =(12, 8)) 
+ 
+# set height of bar 
+maximum = [76.0, 76.16, 75.89] 
+median = [74.85, 74.93, 74.82] 
+mean = [74.86, 74.96, 74.82] 
+ 
+# Set position of bar on X axis 
+br1 = np.arange(len(maximum)) 
+br2 = [x + barWidth for x in br1] 
+br3 = [x + barWidth for x in br2] 
+ 
+# Make the plot
+plt.bar(br1, maximum, color ='r', width = barWidth, 
+        edgecolor ='grey', label ='maximum') 
+plt.bar(br2, median, color ='g', width = barWidth, 
+        edgecolor ='grey', label ='median') 
+plt.bar(br3, mean, color ='b', width = barWidth, 
+        edgecolor ='grey', label ='mean') 
+ 
+# Adding Xticks 
+plt.xlabel('', fontsize = 20) 
+plt.ylabel('Water level (m)', fontsize = 20) 
+plt.xticks([r + barWidth for r in range(len(maximum))], 
+        ['max NTS', 'mean NTS', 'Plan 2014 baseline'])
+plt.ylim(74.5,76.25)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
+plt.title("Upper Bound Adjusted Mean and Maximum NTS", fontsize = 22)
+ 
+plt.legend(fontsize = 16)
+plt.show() 
+
+# LOWER BOUND:
+
+barWidth = 0.25
+fig2 = plt.subplots(figsize =(12, 8)) 
+ 
+# set height of bar 
+maximum = [75.87, 75.86, 75.89] 
+median = [74.75, 74.61, 74.82] 
+mean = [74.77, 74.6, 74.82] 
+ 
+# Set position of bar on X axis 
+br1 = np.arange(len(maximum)) 
+br2 = [x + barWidth for x in br1] 
+br3 = [x + barWidth for x in br2] 
+ 
+# Make the plot
+plt.bar(br1, maximum, color ='r', width = barWidth, 
+        edgecolor ='grey', label ='maximum') 
+plt.bar(br2, median, color ='g', width = barWidth, 
+        edgecolor ='grey', label ='median') 
+plt.bar(br3, mean, color ='b', width = barWidth, 
+        edgecolor ='grey', label ='mean') 
+ 
+# Adding Xticks 
+plt.xlabel('', fontsize = 20) 
+plt.ylabel('Water level (m)', fontsize = 20) 
+plt.xticks([r + barWidth for r in range(len(maximum))], 
+        ['max NTS', 'mean NTS', 'Plan 2014 baseline'])
+plt.ylim(74.5,76.25)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
+plt.title("Lower Bound Adjusted Mean and Maximum NTS", fontsize = 22)
+ 
+plt.legend(fontsize = 16)
+plt.show() 
