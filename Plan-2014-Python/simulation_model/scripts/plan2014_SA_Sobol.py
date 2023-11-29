@@ -20,7 +20,7 @@ from SALib.plotting.morris import (
 )
 import matplotlib.pyplot as plt
 
-def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changing c1 params 
+def my_PLAN2014_fun(c11,c12,c21,a_nts_max1,a_nts_min1, a_nts_avg1, p11, p21): 
     args = sys.argv
     # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
     args = ["", "historic", "historic", "full", "sq", "1", "0"] 
@@ -274,7 +274,8 @@ def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changin
                         preproj = slope * (ontLevelStart - adj - 69.474) ** 1.5
     
                         # above average supplies
-                        if lfSupply >= 7011:
+                        a_nts_avg = a_nts_avg1 # define the average NTS
+                        if lfSupply >= a_nts_avg:
     
                             # set c1 coefficients based on how confident forecast is in wet
                             if lfInd == 1 and lfCon == 3:
@@ -283,9 +284,13 @@ def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changin
                                 c1 = c12 #220
     
                             # rule curve release
+                            
+                            a_nts_max = a_nts_max1 #8552
+                            p1 = p11
+                            
                             flow = (
                                 preproj
-                                + ((lfSupply - 7011) / (8552 - 7011)) ** 0.9 * c1
+                                + ((lfSupply - a_nts_avg) / (a_nts_max - a_nts_avg)) ** p1 * c1
                             )
     
                             # set rc flow regime
@@ -295,15 +300,18 @@ def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changin
                                 sy = "RC1"
     
                         # below average supplies
-                        if lfSupply < 7011:
+                        if lfSupply < a_nts_avg:
     
-                            # set c2 coefficient
-                            c2 = 60
+                            # set c2 and p2 coefficients 
+                            c2 = c21 #60
+                            p2 = p21
     
                             # rule curve release
+                            a_nts_min = a_nts_min1 #5717
+                            
                             flow = (
                                 preproj
-                                - ((7011 - lfSupply) / (7011 - 5717)) ** 1.0 * c2
+                                - ((a_nts_avg - lfSupply) / (a_nts_avg - a_nts_min)) ** p2 * c2
                             )
     
                             # set rc flow regime
@@ -944,19 +952,25 @@ def my_PLAN2014_fun(c11,c12): # add more params to change...so far, just changin
 def wrapped_my_PLAN2014_fun(X, func=my_PLAN2014_fun):
     """g(X) = Y, where X := [a b x] and g(X) := f(X)"""
     # We transpose to obtain each column (the model factors) as separate variables
-    c11, c12 = X.T
+    c11, c12, c21, a_nts_max1, a_nts_min1, a_nts_avg1, p11, p21  = X.T
 
     # Then call the original model
-    return func(c11, c12)
+    return func(c11, c12, c21, a_nts_max1, a_nts_min1, a_nts_avg1, p11, p21)
 
 # define the problem 
 problem = {
-    'names': ['c11', 'c12'],
-    'bounds': [
-        [250, 270], # change these to be physically meaningful 
-        [210, 230] # change 
+    'names': ['c11', 'c12', 'c21', 'a_nts_max1', 'a_nts_min1', 'a_nts_avg1', 'p11', 'p21'],
+    'bounds': [ # assumption: bounds were changed by +/- 10% from their original values in Plan 2014 
+        [234, 286], # adjustments should only be on order of hundereds
+        [198, 242], 
+        [54, 66],
+        [7697, 9407], 
+        [5145, 6288],
+        [6310, 7712],
+        [0.81, 0.99],
+        [0.9, 1.0] # not going above 1 (exceptionally high water levels)
     ],
-    'num_vars': 2
+    'num_vars': 8
 }
 
 #X = saltelli.sample(problem, 2)
@@ -964,7 +978,7 @@ problem = {
 
 # Generate samples
 param_values = saltelli.sample(problem, 100) # make this larger incrementally 
-
+# 100 samples probably isn't enough, but just say you are computationally limited
 # Run model (example)
 
 test = [wrapped_my_PLAN2014_fun(row) for row in param_values]
@@ -979,7 +993,12 @@ print("First-order: ", Si['S1'])
 # Print the total-order sensitivity indices 
 print("Total-order: ", Si["ST"])
 
-# gicve me second order to compare to Morris
+# give me second order to compare to Morris
+
+axes = Si.plot()
+fig = plt.gcf()
+fig.set_size_inches(12,4)
+plt.tight_layout()
 
 #Y = np.empty(X.shape[0])
 #for i in range(X.shape[0]):
