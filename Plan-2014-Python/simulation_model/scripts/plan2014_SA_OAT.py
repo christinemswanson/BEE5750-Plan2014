@@ -978,7 +978,8 @@ for f in range(startf, len(filelist)):
 
 # set width of bar 
 barWidth = 0.25
-fig = plt.subplots(figsize =(12, 8)) 
+fig = plt.subplots(figsize =(10, 8)) 
+fig4 = plt.figure()
  
 # set height of bar 
 maximum = [76.0, 76.16, 75.89] 
@@ -999,16 +1000,17 @@ plt.bar(br3, mean, color ='b', width = barWidth,
         edgecolor ='grey', label ='mean') 
  
 # Adding Xticks 
-plt.xlabel('', fontsize = 20) 
-plt.ylabel('Water level (m)', fontsize = 20) 
+plt.xlabel('', fontsize = 10) 
+plt.ylabel('Water level (m)', fontsize = 10) 
 plt.xticks([r + barWidth for r in range(len(maximum))], 
         ['max NTS', 'mean NTS', 'Plan 2014 baseline'])
 plt.ylim(74.5,76.25)
-plt.xticks(fontsize=18)
-plt.yticks(fontsize=18)
-plt.title("Upper Bound Adjusted Mean and Maximum NTS", fontsize = 22)
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=10)
+plt.title("Upper Bound Adjusted Mean and Maximum NTS", fontsize = 12)
  
-plt.legend(fontsize = 16)
+plt.legend(fontsize = 7.5)
+fig4.savefig("figs/upper_bound_bar_chart.png", dpi=400)
 plt.show() 
 
 # LOWER BOUND:
