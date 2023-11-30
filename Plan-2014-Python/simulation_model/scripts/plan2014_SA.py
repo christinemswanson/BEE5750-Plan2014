@@ -970,8 +970,8 @@ problem = {
         [7697, 9407], 
         [5145, 6288],
         [6310, 7712],
-        [0.81, 0.99],
-        [0.9, 1.0] # not going above 1 (exceptionally high water levels)
+        [0.9, 0.91],#.81,0.99
+        [0.99, 1.0] # not going above 1 (exceptionally high water levels), 0.9
     ],
     'num_vars': 8
 }
@@ -1001,23 +1001,26 @@ Si = morris.analyze(
 )
 
 # plotting 
-fig, (ax1, ax2) = plt.subplots(1, 2)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize =(12, 8))
 fig1 = plt.figure()
-horizontal_bar_plot(ax1, Si, {}, sortby="mu_star", unit=r"10 cms")
-covariance_plot(ax2, Si, {}, unit=r"10 cms")
+horizontal_bar_plot(ax1, Si, {}, sortby="mu_star")
+covariance_plot(ax2, Si, {})
+fig.savefig("figs/bar_and_covar.png", dpi=400)
 
 fig2 = plt.figure()
 sample_histograms(fig2, X, problem, {"color": "y"})
 plt.show()
 
+fig3 = plt.figure()
 mu_star = ma.getdata(Si["mu_star"]) # extract mu star masked array
 plt.scatter(x = mu_star, y = Si["sigma"], 
-            s = 10, color = "black") # annotate this graph to show where each of
+            s = 40, color = "darkred") # annotate this graph to show where each of
 # the params are located, and then interpret for noninfluential params and params w/ interactions 
 # replace x with mu star
 
 plt.xlabel("Mean of Elementary Effects (µ*)")
 plt.ylabel("Standard deviation of Elementary Effects (σ)")
+fig3.savefig("figs/u_sigma.png", dpi=400)
 plt.show()
 
 # covar: 1:1 output is equally sensitive and interactive
